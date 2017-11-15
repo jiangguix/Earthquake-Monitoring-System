@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>小飞象-地震监测</title>
+    <meta name="description" content="" />
+    <meta name="keywords" content="" />
+    <meta name="author" content="jgx" />
+    <link rel="shortcut icon" href="xfx.png">
+    <link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script type="text/javascript" src='http://cdn.static.runoob.com/libs/jquery/1.10.2/jquery.min.js'></script>
+    <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="echarts.min.js"></script>
+    <script src="echarts-gl.min.js"></script>
+    <script src="world.js"></script>
+</head>
+
+<style type="text/css">
+body {
+    background-image: url(b2.jpg);
+    background-size: cover;
+    background-attachment: fixed;
+}
+
+img#left {
+    position: fixed;
+    margin-left: -35px;
+    margin-top: -4px;
+    z-index: 20;
+}
+
+ul#topbar {
+    width: 100%;
+    background-color: #161627;
+    list-style-type: none;
+    margin: 0px;
+    padding-top: 15px;
+    padding-bottom: 14px;
+    border: 0px;
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    z-index: 19;
+}
+
+ul#topbar>li {
+    display: inline;
+}
+
+ul#topbar>li>a {
+    position: relative;
+    left: 180px;
+    color: grey;
+    text-align: center;
+    padding: 15px 15px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+    -webkit-transition: background-color 0.3s;
+}
+
+#xiamenair img {
+    position: relative;
+    left: 0px;
+}
+
+li#xiamenair {
+    position: absolute;
+    right: 180px;
+    top: 14px;
+}
+
+ul#topbar>li>a:before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    right: 50%;
+    top: 0%;
+    background: #1793d6;
+    height: 4px;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-out;
+    -webkit-transition-duration: 0.3s;
+    -webkit-transition-timing-function: ease-out;
+}
+
+ul#topbar>li>a:hover:before {
+    left: 0;
+    right: 0;
+}
+
+ul#topbar>li>a:hover {
+    color: white;
+    background-color: rgba(1, 144, 214, 0.28);
+}
+
+/*topbar的下拉菜单修饰项*/
+.dropdown-content {
+  display: none;
+  position: absolute;
+  top:95.2%;
+  left:220px;
+  background-color: #161627;
+  min-width: 142px;
+  padding: 0;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.8);
+}
+#homepage:hover .dropdown-content {
+  display: block;
+}
+#contentli {
+    display: block; /*把<a>模块设置成块级元素，并去掉上级<ul>的所有margin，则<a>模块会占满整个部分*/
+    color: grey;
+    font-size: 14px;
+    text-align: center;
+    padding: 15px 15px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+}
+#contentli:hover {
+    color: white;
+    background-color: rgba(1, 144, 214, 0.28);
+    text-decoration: none;
+}
+button {
+    background-color: white; 
+    border:none;
+    color: black;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 4px;
+    margin: 15px 6px;
+    padding: 7px 20px;
+    transition-duration: 0.2s;
+}
+button:hover {
+    background-color: #008CBA;
+    color: white;
+}
+button span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.2s;
+}
+button span:after {
+  content: '»';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  transition: 0.2s;
+}
+button:hover span {
+  padding-right: 15px;
+}
+button:hover span:after {
+  opacity: 1;
+  right: 0;
+}
+</style>
+
+<body onload='monitor()' style="margin: 0px;position: relative;">
+    <ul id="topbar">
+        <a href="myhomepage">
+            <img id="left" src="logo_earthquake.png" height="27px">
+        </a>
+        <li id="homepage">
+            <a href="https://earthquake.usgs.gov/">美国地质勘探中心</a>
+            <ul class='dropdown-content' style="list-style-type: none;">
+                <li ><a id="contentli" href="https://earthquake.usgs.gov/data/">数据源</a></li>
+                <li ><a id="contentli" href="http://www.iris.edu/hq/">IRIS</a></li>
+            </ul>
+        </li>
+        <li id="summary">
+            <a href="http://www.cea.gov.cn/publish/dizhenj/468/496/index.html">中国地震局</a>
+        </li>
+        <li id="xiamenair">
+            <a id="xiamenair" href="http://www.avt7.com/SignificantChart">
+                <img id="right" onmouseenter="changeImage()" onmouseout="changeImage()" src="xiamenair1.png" height="25px">
+            </a>
+        </li>
+    </ul>
+
+    <div id = 'maptop' style ="height:600px; width: 100%; position: absolute; top: 30px; background: rgba(0,0,0,0)"></div>
+    <!-- 表单输入信息，用于查询历史地震 -->
+
+    <!-- 提交按钮 -->
+    <div id = 'text_info_button' style="position: absolute;top: 625px;left:15%">
+        <button onclick="monitor()">实况地震监测</button>
+        <button onclick="historical_data()" style="position:relative;left:80px"><span>历史地震查询</span></button>
+        <form class="form-inline" role="form" style="display: inline; position: relative;left: 80px;top:-2px">
+            <div class="form-group">
+                <label for="timest" style="font-size:15px; color:rgb(0,0,0)">开始时间</label>
+                <input type="date" class="form-control" id="timest">
+            </div>
+            <div class="form-group">
+                <label for="timeed" style="font-size:15px; color:rgb(0,0,0)">结束时间</label>
+                <input type="date" class="form-control" id="timeed">
+            </div>
+            <div class="form-group">
+                <label style="font-size:15px; color:rgb(0,0,0)">最低等级</label>
+                <select id="mag" class="form-control">
+                    <option value="6">6级</option>
+                    <option value="7">7级</option>
+                    <option value="8">8级</option>
+                    <option value="9">9级</option>                                               
+                </select>
+            </div>
+        </form>
+    </div>
+
+</body>
+
+<script type="text/javascript">
+//厦航小图标链接设置
+function changeImage() {
+    element = document.getElementById('right')
+    if (element.src.match("1")) {
+        element.src = "xiamenair2.png";
+    } else {
+        element.src = "xiamenair1.png";
+    }
+};
+//先将底图画好，并配置好基本设置
+var myChart = echarts.init(document.getElementById('maptop'));
+option = {
+    "backgroundColor":'rgba(0,0,0,0)',
+    "geo": {          
+        "map": 'world',
+        "aspectScale": 1,
+        "layoutSize": '220%',
+        "layoutCenter": ['50%','50%'],
+        "label": {
+            "emphasis": {
+                "show": false,
+            }
+        },
+        "roam": true,
+        "itemStyle": {
+            "normal": {
+                shadowBlur: 10,
+                shadowColor: 'rgba(0, 0, 0,0.6)',
+                "areaColor": "#004571",
+                "borderColor": "#6AC6E6"
+            },
+            "emphasis": {
+                "areaColor": "#00385E"
+            }
+        }
+    },
+    "legend": {
+        "left": 10,
+        "bottom": 35,
+        "data": [],
+        "itemWidth": 17,
+        "itemHeight": 17,
+        "textStyle": {
+            "color": "#fff",
+            "fontSize": 17
+        }
+    },
+    toolbox: {
+        show : true,
+        top: 30,
+        right: 20,
+        itemSize:20,
+        iconStyle:{
+            normal:{
+                borderColor: 'white'
+            },
+            emphasis:{
+                borderColor: '#008CBA'
+            }
+        },
+        feature : {
+            restore : {show: true},
+            dataView : {show: true, readOnly: false},
+            saveAsImage : {show: true}
+        }
+    },
+    "series": [{
+        "type": "effectScatter",
+        "coordinateSystem": "geo",
+    }]
+};
+myChart.setOption(option)
+// 使echarts图表自适应窗口大小
+window.addEventListener("resize",function(){
+    myChart.resize();
+});
+
+//预处理数据的函数
+function data_processing(data) {
+        var res = []
+        for (var i=0;i<data['features'].length;i++) {
+            var timestamp = data['features'][i]['properties']['time']
+            var newDate = new Date()
+            newDate.setTime(timestamp)
+            res.push([
+                data['features'][i]['geometry']['coordinates'][0],
+                data['features'][i]['geometry']['coordinates'][1],
+                data['features'][i]['properties']['mag'],
+                data['features'][i]['properties']['place'],
+                newDate.toISOString(),            
+                data['features'][i]['geometry']['coordinates'][2]
+            ])
+        }
+        return res
+}
+//地震实时监控
+function monitor() {
+    $.when($.getJSON("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson")).done(function(data) {
+        // 获取最近一天的数据
+        res = data_processing(data)
+        res = res.filter(function(item) {
+            return item[2] > 2
+        })
+        // 从最近一天的数据中挑选出最近一小时的数据
+        res2 = res.filter(function(item) {
+            return Date.parse(new Date())-Date.parse(new Date(item[4])) < 3600000
+        })
+
+        option = {
+            "tooltip": {
+                "trigger": "item",
+                "formatter": function (obj) {
+                    var value = obj.value;
+                    return '经纬度：' + value[0] + ', ' + value[1] + '<br>'
+                        + '强度：' + value[2] + '级' + '<br>'
+                        + '地点：' + value[3] + '<br>'
+                        + '时间：' + value[4] + '<br>'
+                        + '震源深度：' + value[5] + 'km';
+                }
+            },
+            "legend": {
+                "data": ["最近1小时", "最近1天"],
+                bottom: '5%',
+                left: 60
+            },
+            visualMap: [
+                {
+                    left: 5,
+                    bottom: '5%',
+                    type: 'continuous',
+                    dimension: 2,
+                    min: 0.0,
+                    max: 9.0,
+                    precision: 0.1,
+                    realtime: false,
+                    calculable : true,
+                    color: ['red','orange','yellow']
+                },
+            ],
+            "series": [{
+                "name": '最近1天',
+                "type": "effectScatter",
+                "coordinateSystem": "geo",
+                "symbolSize": function(val) {
+                    if(val[2]>=7) {return Math.exp(val[2])/(3*val[2]);}
+                    else {return Math.exp(val[2])/(2*val[2]);}
+                },
+                "data": res,
+                "rippleEffect": {
+                    "brushType": "stroke"
+                },
+                "label": {
+                    "normal": {
+                        "formatter": "{b}",
+                        "position": "left",
+                        "show": true,
+                    },
+                    "emphasis": {
+                        "show": true,
+                    }
+                },
+                "itemStyle": {
+                    "normal": {
+                        "color": "orange"
+                    }
+                }
+            },
+            {
+                "name": "最近1小时",
+                "type": "effectScatter",
+                "coordinateSystem": "geo",
+                "symbolSize": function(val) {
+                    if(val[2]>=7) {return Math.exp(val[2])/(3*val[2]);}
+                    else {return Math.exp(val[2])/(2*val[2]);}
+                },
+                "data": res2,
+                "rippleEffect": {
+                    "brushType": "stroke"
+                },
+                "label": {
+                    "normal": {
+                        "formatter": "{b}",
+                        "position": "left",
+                        "show": true,
+                    },
+                    "emphasis": {
+                        "show": true,
+                    }
+                },
+                "itemStyle": {
+                    "normal": {
+                        "color": "yellow"
+                    }
+                }
+            }]
+        };
+        myChart.setOption(option)
+    })
+}
+// 历史地震查询
+function historical_data() {
+    timest = document.getElementById("timest").value
+    timeed = document.getElementById('timeed').value
+    mag = document.getElementById('mag').value
+    url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=' + timest + '&endtime=' + timeed + '&minmagnitude=' + mag
+    console.log(url)
+    
+    $.getJSON(url).done(function(data) {
+        res = data_processing(data)
+
+        option = {
+            "legend": {
+                "data": ["历史数据"]
+            },
+            "series": [{
+                "name": '历史数据',
+                "symbolSize": function(val) {
+                    return Math.exp(val[2])/(6*val[2]);
+                },
+                "itemStyle": {
+                    "normal": {
+                        "color": "red"
+                    }
+                },
+                "data": res
+            }]
+        }
+        myChart.setOption(option);
+    })
+}
+</script>
+
+</html>
